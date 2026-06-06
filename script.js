@@ -4,7 +4,7 @@
 const TASA_BASE = 22;
 const IVA_FIJO = 0.16;
 const EMPLEADOS_VALIDOS = ['00001','00002','00003','00004','00005'];
-const PLAZO_TASAS = { 12: TASA_BASE, 24: TASA_BASE * 2, 36: TASA_BASE * 3, 48: TASA_BASE * 4 };
+const PLAZO_TASAS = { 12: 22, 24: 24, 36: 26, 48: 28 };
 
 // EmailJS — credenciales
 const EJS_SERVICE  = 'service_xol8cqe';
@@ -237,7 +237,15 @@ document.getElementById('modal-overlay').addEventListener('click', function (e) 
 });
 
 function descargarPDF() {
-  window.print();
+  const element = document.getElementById('modal-body');
+  const opt = {
+    margin: 0.5,
+    filename: 'simulacion_credito.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(element).save();
 }
 
 // ============================================================
@@ -464,10 +472,11 @@ function calcular() {
         <div><div class="ri-label">Sistema amortización</div><div class="ri-val">${tipoLabel[tipoAmort]}</div></div>
       </div>
     </div>
+${rolActual === 'asesor' ? `
     <div class="comision-modal">
       <div><div class="cm-label">Comisión al asesor (1.5% del monto)</div><div class="cm-sub">Asesor: ${asesorNombre}</div></div>
       <div class="cm-val">${fmt(comAsesor)}</div>
-    </div>
+    </div>` : ''}
     <div class="metrics-row">
       <div class="m-box accent">
         <div class="m-lbl">Total a pagar</div>
