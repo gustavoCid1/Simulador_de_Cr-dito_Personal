@@ -213,22 +213,17 @@ function limpiar() {
 }
 
 // ============================================================
-// BORRAR HISTORIAL GUARDADO EN LOCALSTORAGE
+// BORRAR HISTORIAL EN LOCALSTORAGE
 // ============================================================
 function borrarStorage() {
   if (!confirm('¿Deseas borrar todo el historial guardado localmente? Esta acción no se puede deshacer.')) return;
-
-  // Borrar todas las claves relacionadas al simulador
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     keysToRemove.push(localStorage.key(i));
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
-
-  // También sessionStorage
   sessionStorage.clear();
-
-  alert('Historial borrado correctamente. No hay datos guardados en este navegador.');
+  alert('Historial borrado correctamente.');
 }
 
 // ============================================================
@@ -282,21 +277,22 @@ function enviarEmail() {
   btn.textContent = 'Enviando...';
 
   const s = ultimaSimulacion;
+
+  // Variables que coinciden EXACTAMENTE con tu plantilla de EmailJS
   const templateParams = {
-    to_email       : destino,
-    to_name        : destino,
-    from_name      : 'Simulador de Crédito Personal',
-    solicitante    : s.nombre,
-    monto          : s.monto,
-    plazo          : s.plazo + ' meses',
-    tasa           : s.tasa + '% anual',
-    sistema        : s.sistema,
-    primer_pago    : s.primerPago,
-    ultimo_pago    : s.ultimoPago,
-    total_pagar    : s.totalPagar,
-    total_intereses: s.totalIntereses,
-    cat            : s.cat + '%',
-    mensaje        : mensaje || 'Adjunto encontrará el resumen de su cotización de crédito personal.'
+    nombre           : s.nombre,
+    apellido_paterno : s.ap1 || '',
+    apellido_materno : s.ap2 || '',
+    email            : destino,
+    to_email         : destino,
+    monto            : s.montoRaw,
+    plazo            : s.plazo,
+    tasa             : s.tasa,
+    cat              : s.cat,
+    pago_mensual     : s.pagoMensualRaw,
+    total_pagar      : s.totalPagarRaw,
+    fecha            : new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' }),
+    mensaje          : mensaje || 'Sin observaciones adicionales.'
   };
 
   emailjs.send(EJS_SERVICE, EJS_TEMPLATE, templateParams)
@@ -307,7 +303,7 @@ function enviarEmail() {
     })
     .catch(err => {
       console.error('EmailJS error:', err);
-      mostrarStatus(status, 'Error al enviar. Verifica tu conexión o las credenciales de EmailJS.', 'error');
+      mostrarStatus(status, 'Error al enviar. Revisa la consola del navegador (F12) para más detalles.', 'error');
       btn.disabled = false;
       btn.textContent = 'Enviar cotización';
     });
@@ -331,6 +327,11 @@ function fmt(n) {
   return '$' + parseFloat(n.toFixed(2)).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function fmtRaw(n) {
+  if (isNaN(n)) return '0.00';
+  return parseFloat(n.toFixed(2)).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 // ============================================================
 // CALCULAR AMORTIZACIÓN
 // ============================================================
@@ -344,10 +345,10 @@ function getTM(mes, tasaEfectiva, periodos) {
 }
 
 function calcular() {
-  const nombre    = document.getElementById('f-nombre').value.trim();
-  const ap1       = document.getElementById('f-ap1').value.trim();
-  const ap2       = document.getElementById('f-ap2').value.trim();
-  const monto     = parseFloat(document.getElementById('f-monto').value) || 0;
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const ap1    = document.getElementById('f-ap1').value.trim();
+  const ap2    = document.getElementById('f-ap2').value.trim();
+  const monto  = parseFloat(document.getElementById('f-monto').value) || 0;
   if (monto <= 0) { alert('Ingresa el monto del crédito.'); return; }
 
   const plazo = plazoActual;
@@ -373,18 +374,18 @@ function calcular() {
     });
   }
 
-  const comApMonto  = monto * comAp / 100;
-  const comApIva    = comApMonto * IVA_FIJO;
-  const comApTotal  = comApMonto + comApIva;
+  const comApMonto     = monto * comAp / 100;
+  const comApIva       = comApMonto * IVA_FIJO;
+  const comApTotal     = comApMonto + comApIva;
   const totalFinanciar = monto + comApTotal;
-  const comAsesor   = monto * 0.015;
+  const comAsesor      = monto * 0.015;
 
-  const tipoAmort   = document.getElementById('f-tipo').value;
+  const tipoAmort = document.getElementById('f-tipo').value;
   let rows = [], totPagos = 0, totInt = 0, totIva = 0, totCap = 0;
 
   if (tipoAmort === 'lineal') {
     const capFijo = monto / plazo;
-    let saldo     = monto;
+    let saldo = monto;
     for (let i = 1; i <= plazo; i++) {
       const tm   = getTM(i, tasa, periodos);
       const int  = saldo * tm;
@@ -425,29 +426,28 @@ function calcular() {
     }
   }
 
-  const tipoLabel  = { lineal: 'Capital constante (alemán)', frances: 'Cuota fija (francés)', bullet: 'Solo intereses (bullet)' };
-  const nombreSol  = [nombre, ap1, ap2].filter(Boolean).join(' ') || nombreCompleto;
+  const tipoLabel    = { lineal: 'Capital constante (alemán)', frances: 'Cuota fija (francés)', bullet: 'Solo intereses (bullet)' };
+  const nombreSol    = [nombre, ap1, ap2].filter(Boolean).join(' ') || nombreCompleto;
   const asesorNombre = document.getElementById('f-asesor').value || '—';
 
-  // Guardar para email
+  // Guardar para email — incluye ap1, ap2 y valores RAW sin símbolo $
   ultimaSimulacion = {
-    nombre       : nombreSol,
-    monto        : fmt(monto),
-    plazo,
-    tasa         : tasa.toFixed(2),
-    sistema      : tipoLabel[tipoAmort],
-    primerPago   : fmt(rows[0].pago),
-    ultimoPago   : fmt(rows[rows.length - 1].pago),
-    totalPagar   : fmt(totPagos + comApTotal),
-    totalIntereses: fmt(totInt + totIva),
-    cat          : cat.toFixed(1)
+    nombre         : nombreSol,
+    ap1            : ap1,
+    ap2            : ap2,
+    montoRaw       : fmtRaw(monto),
+    plazo          : plazo,
+    tasa           : tasa.toFixed(2),
+    sistema        : tipoLabel[tipoAmort],
+    pagoMensualRaw : fmtRaw(rows[0].pago),
+    totalPagarRaw  : fmtRaw(totPagos + comApTotal),
+    cat            : cat.toFixed(1)
   };
 
-  // Persistir último cálculo en localStorage
   try {
     localStorage.setItem('simulador_ultima_simulacion', JSON.stringify(ultimaSimulacion));
     localStorage.setItem('simulador_ultima_fecha', new Date().toLocaleString('es-MX'));
-  } catch (e) { /* espacio lleno, ignorar */ }
+  } catch (e) {}
 
   let html = `
     <div class="resumen-box">
