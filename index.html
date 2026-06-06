@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Crédito Personal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="brand">SIMULADOR <span>CRÉDITO PERSONAL</span></div>
+  <div class="header-sub">Herramienta Académica · Ingeniería Web</div>
+</header>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-card-header">
+      <h2>Acceso al Simulador</h2>
+      <p>Selecciona tu perfil para continuar</p>
+    </div>
+    <div class="login-body">
+      <div class="tipo-sel">
+        <div class="tipo-opt sel" id="opt-cliente" onclick="selLogin('cliente')">
+          <div class="ico">👤</div>
+          <div class="lbl">Cliente</div>
+          <div class="sub">Simulación personal</div>
+        </div>
+        <div class="tipo-opt" id="opt-asesor" onclick="selLogin('asesor')">
+          <div class="ico">🏦</div>
+          <div class="lbl">Asesor</div>
+          <div class="sub">Acceso con No. empleado</div>
+        </div>
+      </div>
+
+      <div id="campos-cliente">
+        <div class="field"><label>Nombre(s)</label><input type="text" id="login-nombre" placeholder="Tu nombre"></div>
+        <div class="field"><label>Primer apellido</label><input type="text" id="login-ap1" placeholder="Apellido paterno"></div>
+        <div class="field"><label>Segundo apellido</label><input type="text" id="login-ap2" placeholder="Apellido materno (opcional)"></div>
+      </div>
+
+      <div id="campos-asesor" style="display:none">
+        <div class="field"><label>Número de empleado</label><input type="text" id="login-empleado" placeholder="Ej. 00001" maxlength="5"></div>
+        <p style="font-size:11px; color:#888; margin-top:-6px; margin-bottom:12px;">Empleados: 00001 – 00005</p>
+      </div>
+
+      <button class="btn-login" onclick="acceder()">Entrar al simulador →</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <div class="top-bar">
+    <div class="top-bar-left">Bienvenido, <strong id="display-nombre">—</strong></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="role-badge" id="role-badge">Cliente</div>
+      <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- SOLICITANTE -->
+    <div class="card">
+      <div class="card-header"><h2>Datos del solicitante</h2></div>
+      <div class="card-body">
+        <div class="fg4">
+          <div class="field"><label>Nombre(s)</label><input type="text" id="f-nombre" placeholder="Nombre(s)"></div>
+          <div class="field"><label>Primer apellido</label><input type="text" id="f-ap1" placeholder="Paterno"></div>
+          <div class="field"><label>Segundo apellido</label><input type="text" id="f-ap2" placeholder="Materno"></div>
+          <div class="field"><label>Asesor asignado</label><input type="text" id="f-asesor" placeholder="Nombre del asesor" readonly style="background:#f0f5f0;color:#666;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTO Y PLAZO -->
+    <div class="card">
+      <div class="card-header"><h2>Monto y plazo del crédito</h2></div>
+      <div class="card-body">
+        <div class="fg2">
+          <div class="field">
+            <div class="label-row"><label>Monto del crédito ($)</label><button class="info-btn" tabindex="-1">?</button><div class="tooltip">El monto que deseas solicitar. El banco puede autorizar un monto diferente según tu historial crediticio.</div></div>
+            <input type="number" id="f-monto" value="80000" min="10000" step="5000" oninput="actualizarTodo()">
+          </div>
+          <div class="field">
+            <div class="label-row"><label>Sistema de amortización</label><button class="info-btn" tabindex="-1">?</button><div class="tooltip"><strong>Capital constante (alemán):</strong> pago a capital fijo, total decrece.<br><br><strong>Cuota fija (francés):</strong> pago mensual igual todo el plazo.</div></div>
+            <select id="f-tipo" oninput="actualizarTodo()">
+              <option value="lineal">Capital constante (alemán)</option>
+              <option value="frances" selected>Cuota fija (francés)</option>
+              <option value="bullet">Solo intereses (bullet)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;">
+          <div class="label-row" style="margin-bottom:10px;"><label style="font-size:11px;font-weight:700;color:#4a7c59;letter-spacing:0.07em;text-transform:uppercase;">Plazo del crédito</label></div>
+          <div class="plazo-grid" id="plazo-grid">
+            <div class="plazo-btn sel" onclick="selPlazo(12, this)"><div class="p-months">12</div><div class="p-years">meses · 1 año</div><div class="p-tasa" id="tasa-tag-12">Tasa base</div></div>
+            <div class="plazo-btn" onclick="selPlazo(24, this)"><div class="p-months">24</div><div class="p-years">meses · 2 años</div><div class="p-tasa" id="tasa-tag-24">×2</div></div>
+            <div class="plazo-btn" onclick="selPlazo(36, this)"><div class="p-months">36</div><div class="p-years">meses · 3 años</div><div class="p-tasa" id="tasa-tag-36">×3</div></div>
+            <div class="plazo-btn" onclick="selPlazo(48, this)"><div class="p-months">48</div><div class="p-years">meses · 4 años</div><div class="p-tasa" id="tasa-tag-48">×4</div></div>
+          </div>
+        </div>
+
+        <div class="interest-indicator">
+          <div>
+            <div class="ii-label">Tasa de interés anual aplicada</div>
+            <div class="ii-sub" id="ii-plazo-desc">12 meses — Tasa base del banco</div>
+          </div>
+          <div style="text-align:right">
+            <div class="ii-val" id="ii-tasa-val">—%</div>
+            <div class="ii-sub" id="ii-mensual">Mensual: —%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASESOR AVANZADO -->
+    <div class="card" id="card-asesor-config" style="display:none;">
+      <div class="card-header"><h2>Configuración avanzada — Asesores</h2></div>
+      <div class="card-body">
+        <div class="fg3">
+          <div class="field">
+            <div class="label-row"><label>Tasa anual personalizada (%)</label><button class="info-btn" tabindex="-1">?</button><div class="tooltip">Como asesor puedes ajustar la tasa manualmente.</div></div>
+            <div class="tasa-control">
+              <input type="range" id="f-tasa-slider" min="10" max="60" step="0.5" value="22" oninput="syncTasa('slider')">
+              <div class="tasa-val" id="tasa-display">22%</div>
+            </div>
+            <input type="number" id="f-tasa" value="22" min="10" max="60" step="0.1" oninput="syncTasa('input')" style="margin-top:6px;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 11px;border:1.5px solid #c8ddc0;border-radius:8px;width:100%;background:#f0f5f0;font-weight:600;">
+          </div>
+          <div class="field">
+            <div class="label-row"><label>Comisión por apertura (%)</label><button class="info-btn" tabindex="-1">?</button><div class="tooltip">Cobro único al inicio del crédito por gastos administrativos.</div></div>
+            <input type="number" id="f-comision-ap" value="1" min="0" max="10" step="0.1" oninput="actualizarTodo()">
+          </div>
+          <div class="field">
+            <div class="label-row"><label>CAT (%)</label><button class="info-btn" tabindex="-1">?</button><div class="tooltip"><strong>Costo Anual Total:</strong> incluye tasa, comisiones, seguros e IVA. Indicador real del costo del crédito.</div></div>
+            <input type="number" id="f-cat" value="25.3" min="0" step="0.1">
+          </div>
+        </div>
+
+        <div class="mt20">
+          <div class="toggle-row" onclick="toggleVar()">
+            <div class="sw" id="var-sw"></div>
+            <span class="toggle-lbl">Activar tasas variables por tramo</span>
+          </div>
+          <div class="periodos-wrap" id="periodos-wrap">
+            <p style="font-size:11px;color:#888;margin-bottom:10px;">Meses fuera de rango usarán la tasa configurada arriba.</p>
+            <div class="periodos-list" id="periodos-list"></div>
+            <button class="btn-add-tramo" onclick="addPeriodo()">+ Agregar tramo de tasa</button>
+          </div>
+        </div>
+
+        <div class="mt20">
+          <div class="comision-box">
+            <div>
+              <div class="cb-label">Comisión al asesor</div>
+              <div class="cb-sub" id="cb-desc">1.5% del monto total</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="cb-val" id="cb-val">$0.00</div>
+              <div class="cb-pct" id="cb-pct">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTONES -->
+    <div class="btns-row">
+      <button class="btn-primary" onclick="calcular()">Calcular tabla de amortización</button>
+      <button class="btn-clear" onclick="limpiar()">Limpiar datos</button>
+      <button class="btn-borrar-storage" onclick="borrarStorage()">Borrar historial guardado</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL RESULTADO -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Tabla de Amortización</div>
+      <div class="modal-acts">
+        <button class="btn-email" onclick="abrirModalEmail()" title="Enviar por correo">Enviar por email</button>
+        <button class="btn-pdf" onclick="descargarPDF()" title="Descargar PDF">Descargar PDF</button>
+        <button class="btn-close" onclick="cerrarModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- MODAL EMAIL -->
+<div class="modal-overlay" id="modal-email-overlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">Enviar cotización por email</div>
+      <div class="modal-acts"><button class="btn-close" onclick="cerrarModalEmail()">✕</button></div>
+    </div>
+    <div class="modal-body">
+      <div class="field" style="margin-bottom:14px;">
+        <label style="font-size:11px;font-weight:700;color:#4a7c59;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:6px;display:block;">Correo destinatario</label>
+        <input type="email" id="email-destino" placeholder="cliente@ejemplo.com" style="width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 13px;border:1.5px solid #c8ddc0;border-radius:8px;background:#f0f5f0;outline:none;font-weight:500;">
+      </div>
+      <div class="field" style="margin-bottom:14px;">
+        <label style="font-size:11px;font-weight:700;color:#4a7c59;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:6px;display:block;">Mensaje adicional (opcional)</label>
+        <textarea id="email-msg" rows="3" placeholder="Escribe un mensaje personalizado..." style="width:100%;font-family:'DM Sans',sans-serif;font-size:13px;padding:11px 13px;border:1.5px solid #c8ddc0;border-radius:8px;background:#f0f5f0;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div id="email-status" style="font-size:12px;margin-bottom:10px;display:none;"></div>
+      <button class="btn-primary" onclick="enviarEmail()" id="btn-enviar-email" style="width:100%;">Enviar cotización</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
